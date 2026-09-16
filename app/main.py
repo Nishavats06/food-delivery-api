@@ -43,9 +43,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
 
 
 def custom_openapi():
