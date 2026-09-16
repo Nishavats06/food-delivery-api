@@ -31,7 +31,7 @@ def reverse_geocode(lat: float, lon: float) -> dict | None:
     try:
         response = httpx.get(
             NOMINATIM_REVERSE_URL,
-            params={"lat": lat, "lon": lon, "format": "json"},
+            params={"lat": lat, "lon": lon, "format": "json", "addressdetails": 1},
             headers=HEADERS,
             timeout=5.0,
         )
@@ -39,8 +39,20 @@ def reverse_geocode(lat: float, lon: float) -> dict | None:
         result = response.json()
         if "display_name" not in result:
             return None
+
+        address = result.get("address", {})
+        road = address.get("road")
+        house_number = address.get("house_number")
+        address_line1 = f"{house_number} {road}".strip() if house_number or road else None
+
         return {
-            "display_name": result["display_name"],
+            "formattedAddress": result["display_name"],
+            "addressLine1": address_line1,
+            "addressLine2": address.get("suburb") or address.get("neighbourhood"),
+            "city": address.get("city") or address.get("town") or address.get("village"),
+            "state": address.get("state"),
+            "country": address.get("country"),
+            "pincode": address.get("postcode"),
             "latitude": lat,
             "longitude": lon,
         }
