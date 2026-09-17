@@ -44,7 +44,7 @@ def create_restaurant(
     new_restaurant = Restaurant(
         name=restaurant_in.name,
         description=restaurant_in.description,
-        address=restaurant_in.address,
+        address=restaurant_in.address.model_dump(),
         cuisine_type=restaurant_in.cuisine_type,
         image_url=restaurant_in.image_url,
         category_id=restaurant_in.category_id,

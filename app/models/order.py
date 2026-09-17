@@ -1,7 +1,9 @@
+
 import enum
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum, JSON, DateTime, func
 from sqlalchemy.orm import relationship
 from app.db.session import Base
+
 
 class OrderStatus(str, enum.Enum):
     PLACED = "PLACED"

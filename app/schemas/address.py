@@ -1,15 +1,15 @@
 from pydantic import BaseModel
-from typing import Optional
+from app.schemas.location import AddressLocation
 
 class AddressCreate(BaseModel):
     label: str
-    location: dict
+    location: AddressLocation
     is_default: bool = False
 
 class AddressOut(BaseModel):
     id: int
     label: str
-    location: dict
+    location: AddressLocation
     is_default: bool
 
     class Config:

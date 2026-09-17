@@ -17,7 +17,7 @@ def search_location(query: str, limit: int = 5) -> list[dict]:
         results = response.json()
         return [
             {
-                "display_name": r["display_name"],
+                "formattedAddress": r["display_name"],
                 "latitude": float(r["lat"]),
                 "longitude": float(r["lon"]),
             }

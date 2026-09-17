@@ -28,7 +28,7 @@ def create_address(
     new_address = Address(
         user_id=current_user.id,
         label=address_in.label,
-        location=address_in.location,
+        location=address_in.location.model_dump(),
         is_default=address_in.is_default,
     )
     db.add(new_address)
