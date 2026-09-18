@@ -17,9 +17,38 @@ class UserCreate(BaseModel):
             raise ValueError("Password must be at least 6 characters long")
         return value
 
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        if not value.isdigit() or len(value) != 10:
+            raise ValueError("Phone number must be exactly 10 digits")
+        return value
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "first_name": "Ravi",
+                "last_name": "Sharma",
+                "email": "ravi.sharma@example.com",
+                "phone_number": "9876543210",
+                "password": "securepass123",
+                "role": "CUSTOMER"
+            }
+        }
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "ravi.sharma@example.com",
+                "password": "securepass123"
+            }
+        }
 
 class UserOut(BaseModel):
     id: int
@@ -32,7 +61,26 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "first_name": "Ravi",
+                "last_name": "Sharma",
+                "email": "ravi.sharma@example.com",
+                "phone_number": "9876543210",
+                "profile_picture_url": None,
+                "role": "CUSTOMER"
+            }
+        }
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "bearer"
+            }
+        }

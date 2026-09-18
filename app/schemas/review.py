@@ -13,6 +13,14 @@ class ReviewCreate(BaseModel):
             raise ValueError("Rating must be between 1 and 5")
         return value
 
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "rating": 5,
+                "comment": "Great food, fast delivery!"
+            }
+        }
+
 class ReviewUpdate(BaseModel):
     rating: Optional[int] = None
     comment: Optional[str] = None
@@ -24,6 +32,14 @@ class ReviewUpdate(BaseModel):
             raise ValueError("Rating must be between 1 and 5")
         return value
 
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "rating": 4,
+                "comment": "Updated my review after second order"
+            }
+        }
+
 class ReviewOut(BaseModel):
     id: int
     user_id: int
@@ -34,3 +50,13 @@ class ReviewOut(BaseModel):
 
     class Config:
         from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "user_id": 2,
+                "restaurant_id": 1,
+                "rating": 5,
+                "comment": "Great food, fast delivery!",
+                "created_at": "2026-09-16T15:45:00Z"
+            }
+        }
