@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.openapi.utils import get_openapi
@@ -23,11 +23,17 @@ app.include_router(addresses_router)
 app.include_router(orders_router)
 app.include_router(reviews_router)
 
+
+@app.get("/")
+def root():
+    return RedirectResponse(url="/docs")
+
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": True, "status_code": exc.status_code, "message": exc.detail},
+        content={"success": False, "status_code": exc.status_code, "message": exc.detail},
     )
 
 
@@ -39,10 +45,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     message = f"{field_name}: {error_msg}"
     return JSONResponse(
         status_code=422,
-        content={"error": True, "status_code": 422, "message": message},
+        content={"success": False, "status_code": 422, "message": message},
     )
-
-
 
 
 def custom_openapi():
@@ -58,7 +62,7 @@ def custom_openapi():
     error_response_schema = {
         "type": "object",
         "properties": {
-            "error": {"type": "boolean", "example": True},
+            "success": {"type": "boolean", "example": False},
             "status_code": {"type": "integer", "example": 422},
             "message": {"type": "string", "example": "field_name: Field required"},
         },

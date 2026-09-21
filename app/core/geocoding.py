@@ -1,25 +1,24 @@
 import httpx
+from app.core.config import settings
 
-NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search"
-NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
-HEADERS = {"User-Agent": "food-delivery-app"}
+GOOGLE_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 
-
-def search_location(query: str, limit: int = 5) -> list[dict]:
+def search_location(query: str, limit: int = 5, lat: float = None, lng: float = None) -> list[dict]:
     try:
-        response = httpx.get(
-            NOMINATIM_SEARCH_URL,
-            params={"q": query, "format": "json", "limit": limit},
-            headers=HEADERS,
-            timeout=5.0,
-        )
+        params = {"address": query, "key": settings.GOOGLE_MAPS_API_KEY}
+        if lat is not None and lng is not None:
+            params["location"] = f"{lat},{lng}"
+            params["radius"] = 200000  # 200km in meters
+
+        response = httpx.get(GOOGLE_GEOCODE_URL, params=params, timeout=5.0)
         response.raise_for_status()
-        results = response.json()
+        data = response.json()
+        results = data.get("results", [])[:limit]
         return [
             {
-                "formattedAddress": r["display_name"],
-                "latitude": float(r["lat"]),
-                "longitude": float(r["lon"]),
+                "formattedAddress": r["formatted_address"],
+                "latitude": r["geometry"]["location"]["lat"],
+                "longitude": r["geometry"]["location"]["lng"],
             }
             for r in results
         ]
@@ -30,29 +29,27 @@ def search_location(query: str, limit: int = 5) -> list[dict]:
 def reverse_geocode(lat: float, lon: float) -> dict | None:
     try:
         response = httpx.get(
-            NOMINATIM_REVERSE_URL,
-            params={"lat": lat, "lon": lon, "format": "json", "addressdetails": 1},
-            headers=HEADERS,
+            GOOGLE_GEOCODE_URL,
+            params={"latlng": f"{lat},{lon}", "key": settings.GOOGLE_MAPS_API_KEY},
             timeout=5.0,
         )
         response.raise_for_status()
-        result = response.json()
-        if "display_name" not in result:
+        data = response.json()
+        results = data.get("results", [])
+        if not results:
             return None
 
-        address = result.get("address", {})
-        road = address.get("road")
-        house_number = address.get("house_number")
-        address_line1 = f"{house_number} {road}".strip() if house_number or road else None
+        result = results[0]
+        components = {c["types"][0]: c["long_name"] for c in result["address_components"] if c["types"]}
 
         return {
-            "formattedAddress": result["display_name"],
-            "addressLine1": address_line1,
-            "addressLine2": address.get("suburb") or address.get("neighbourhood"),
-            "city": address.get("city") or address.get("town") or address.get("village"),
-            "state": address.get("state"),
-            "country": address.get("country"),
-            "pincode": address.get("postcode"),
+            "formattedAddress": result["formatted_address"],
+            "addressLine1": components.get("route"),
+            "addressLine2": components.get("sublocality") or components.get("neighborhood"),
+            "city": components.get("locality"),
+            "state": components.get("administrative_area_level_1"),
+            "country": components.get("country"),
+            "pincode": components.get("postal_code"),
             "latitude": lat,
             "longitude": lon,
         }
