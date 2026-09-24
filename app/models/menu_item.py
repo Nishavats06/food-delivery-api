@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -13,6 +13,7 @@ class MenuItem(Base):
     image_url = Column(String, nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     is_available = Column(Boolean, default=True)
+    portions = Column(JSON, nullable=True)
 
     restaurant = relationship("Restaurant")
     category = relationship("Category")

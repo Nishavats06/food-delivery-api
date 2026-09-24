@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from fastapi import UploadFile, File
 
 from app.db.session import get_db
 from app.models.user import User
@@ -7,6 +8,7 @@ from app.schemas.user import UserCreate, UserLogin, UserOut, Token
 from app.schemas.response import ResponseWrapper
 from app.core.security import hash_password, verify_password, create_access_token
 from app.api.deps import get_current_user
+from app.core.cloudinary_config import upload_image
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -45,3 +47,15 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=ResponseWrapper[UserOut])
 def read_current_user(current_user: User = Depends(get_current_user)):
     return ResponseWrapper(success=True, message="success", data=current_user)
+
+@router.post("/me/profile-picture", response_model=ResponseWrapper[UserOut])
+def upload_profile_picture(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    image_url = upload_image(file.file, folder="profile_pictures")
+    current_user.profile_picture_url = image_url
+    db.commit()
+    db.refresh(current_user)
+    return ResponseWrapper(success=True, message="Profile picture updated successfully", data=current_user)
