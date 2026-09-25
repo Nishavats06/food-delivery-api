@@ -9,6 +9,10 @@ from app.schemas.response import ResponseWrapper
 from app.core.security import hash_password, verify_password, create_access_token
 from app.api.deps import get_current_user
 from app.core.cloudinary_config import upload_image
+from app.schemas.google_auth import GoogleLoginRequest
+from app.core.google_auth import verify_google_token
+from app.models.user import User, UserRole
+from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -59,3 +63,28 @@ def upload_profile_picture(
     db.commit()
     db.refresh(current_user)
     return ResponseWrapper(success=True, message="Profile picture updated successfully", data=current_user)
+
+@router.post("/google-login", response_model=ResponseWrapper[Token])
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    google_data = verify_google_token(payload.id_token)
+    if not google_data:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+
+    user = db.query(User).filter(User.email == google_data["email"]).first()
+
+    if not user:
+        user = User(
+            first_name=google_data["first_name"],
+            last_name=google_data["last_name"],
+            email=google_data["email"],
+            hashed_password=hash_password(google_data["email"] + settings.SECRET_KEY),
+            profile_picture_url=google_data["profile_picture_url"],
+            role=UserRole.CUSTOMER,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token(data={"sub": user.email})
+    token = Token(access_token=access_token, token_type="bearer")
+    return ResponseWrapper(success=True, message="Google login successful", data=token)
