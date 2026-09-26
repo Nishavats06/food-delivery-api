@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from fastapi import UploadFile, File
 
 from app.db.session import get_db
 from app.models.user import User
@@ -10,7 +9,7 @@ from app.models.menu_item import MenuItem
 from app.schemas.menu_item import MenuItemCreate, MenuItemUpdate, MenuItemOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import require_owner
-from app.core.cloudinary_config import upload_image
+from app.schemas.response import ResponseWrapper, ImageUploadOut
 
 router = APIRouter(tags=["Menu"])
 
@@ -38,8 +37,8 @@ def create_menu_item(
         name=item_in.name,
         description=item_in.description,
         price=item_in.price,
-        image_url=item_in.image_url,
         category_id=item_in.category_id,
+        image_url=item_in.image_url,
         is_available=item_in.is_available,
         portions=[p.model_dump() for p in item_in.portions] if item_in.portions else None,
     )
@@ -97,21 +96,3 @@ def delete_menu_item(
     db.commit()
     return ResponseWrapper(success=True, message="Menu item deleted successfully", data=None)
 
-@router.post("/menu/{item_id}/image", response_model=ResponseWrapper[MenuItemOut])
-def upload_menu_item_image(
-    item_id: int,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_owner),
-):
-    item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
-
-    get_owned_restaurant(item.restaurant_id, db, current_user)
-
-    image_url = upload_image(file.file, folder="dishes")
-    item.image_url = image_url
-    db.commit()
-    db.refresh(item)
-    return ResponseWrapper(success=True, message="Dish image updated successfully", data=item)

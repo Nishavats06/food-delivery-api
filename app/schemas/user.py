@@ -50,6 +50,22 @@ class UserLogin(BaseModel):
             }
         }
 
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "first_name": "Ravi",
+                "last_name": "Sharma",
+                "phone_number": "9876543210",
+                "profile_picture_url": "https://res.cloudinary.com/ha7wup79/image/upload/v1790415799/uploads/obwk7bx1efblwa3mcddy.png"
+            }
+        }
+
 class UserOut(BaseModel):
     id: int
     first_name: str
@@ -68,7 +84,7 @@ class UserOut(BaseModel):
                 "last_name": "Sharma",
                 "email": "ravi.sharma@example.com",
                 "phone_number": "9876543210",
-                "profile_picture_url": None,
+                "profile_picture_url": "https://res.cloudinary.com/ha7wup79/image/upload/v1790415799/uploads/obwk7bx1efblwa3mcddy.png",
                 "role": "CUSTOMER"
             }
         }

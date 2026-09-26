@@ -1,17 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from fastapi import UploadFile, File
 
 from app.db.session import get_db
-from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserOut, Token
+from app.models.user import User, UserRole
+from app.schemas.user import UserCreate, UserLogin, UserOut, Token, UserUpdate
 from app.schemas.response import ResponseWrapper
 from app.core.security import hash_password, verify_password, create_access_token
 from app.api.deps import get_current_user
-from app.core.cloudinary_config import upload_image
 from app.schemas.google_auth import GoogleLoginRequest
 from app.core.google_auth import verify_google_token
-from app.models.user import User, UserRole
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -52,17 +49,20 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
 def read_current_user(current_user: User = Depends(get_current_user)):
     return ResponseWrapper(success=True, message="success", data=current_user)
 
-@router.post("/me/profile-picture", response_model=ResponseWrapper[UserOut])
-def upload_profile_picture(
-    file: UploadFile = File(...),
+
+@router.patch("/me", response_model=ResponseWrapper[UserOut])
+def update_current_user(
+    user_in: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    image_url = upload_image(file.file, folder="profile_pictures")
-    current_user.profile_picture_url = image_url
+    update_data = user_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
     db.commit()
     db.refresh(current_user)
-    return ResponseWrapper(success=True, message="Profile picture updated successfully", data=current_user)
+    return ResponseWrapper(success=True, message="Profile updated successfully", data=current_user)
+
 
 @router.post("/google-login", response_model=ResponseWrapper[Token])
 def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from fastapi import UploadFile, File
 
 from app.db.session import get_db
 from app.models.user import User
@@ -9,7 +8,7 @@ from app.models.restaurant import Restaurant
 from app.schemas.restaurant import RestaurantCreate, RestaurantUpdate, RestaurantOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import require_owner
-from app.core.cloudinary_config import upload_image
+from app.schemas.response import ResponseWrapper, ImageUploadOut
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
@@ -45,8 +44,8 @@ def create_restaurant(
         description=restaurant_in.description,
         address=restaurant_in.address.model_dump(),
         cuisine_type=restaurant_in.cuisine_type,
-        image_url=restaurant_in.image_url,
         category_id=restaurant_in.category_id,
+        image_url=restaurant_in.image_url,
         owner_id=current_user.id,
     )
     db.add(new_restaurant)
@@ -103,21 +102,3 @@ def delete_restaurant(
     db.commit()
     return ResponseWrapper(success=True, message="Restaurant deleted successfully", data=None)
 
-@router.post("/{restaurant_id}/image", response_model=ResponseWrapper[RestaurantOut])
-def upload_restaurant_image(
-    restaurant_id: int,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_owner),
-):
-    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    if restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
-
-    image_url = upload_image(file.file, folder="restaurants")
-    restaurant.image_url = image_url
-    db.commit()
-    db.refresh(restaurant)
-    return ResponseWrapper(success=True, message="Restaurant image updated successfully", data=restaurant)

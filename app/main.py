@@ -12,6 +12,7 @@ from app.api.cart import router as cart_router
 from app.api.addresses import router as addresses_router
 from app.api.orders import router as orders_router
 from app.api.reviews import router as reviews_router
+from app.api.upload import router as upload_router
 
 app = FastAPI(title="Food Delivery API")
 app.include_router(auth_router)
@@ -22,7 +23,7 @@ app.include_router(cart_router)
 app.include_router(addresses_router)
 app.include_router(orders_router)
 app.include_router(reviews_router)
-
+app.include_router(upload_router)
 
 @app.get("/")
 def root():
