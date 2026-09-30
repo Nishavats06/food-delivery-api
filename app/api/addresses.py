@@ -8,17 +8,23 @@ from app.models.address import Address
 from app.schemas.address import AddressCreate, AddressOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import get_current_user
+from app.core.common_responses import UNAUTHORIZED_RESPONSE, NOT_FOUND_RESPONSE
 
 router = APIRouter(prefix="/addresses", tags=["Addresses"])
 
 
-@router.get("", response_model=ResponseWrapper[List[AddressOut]])
+@router.get("", response_model=ResponseWrapper[List[AddressOut]], responses=UNAUTHORIZED_RESPONSE)
 def list_addresses(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     addresses = db.query(Address).filter(Address.user_id == current_user.id).all()
     return ResponseWrapper(success=True, message="success", data=addresses)
 
 
-@router.post("", response_model=ResponseWrapper[AddressOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ResponseWrapper[AddressOut],
+    status_code=status.HTTP_201_CREATED,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 def create_address(
     address_in: AddressCreate,
     db: Session = Depends(get_db),
@@ -39,7 +45,11 @@ def create_address(
     return ResponseWrapper(success=True, message="Address created successfully", data=new_address)
 
 
-@router.delete("/{address_id}", response_model=ResponseWrapper[None])
+@router.delete(
+    "/{address_id}",
+    response_model=ResponseWrapper[None],
+    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def delete_address(
     address_id: int,
     db: Session = Depends(get_db),

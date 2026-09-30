@@ -10,6 +10,7 @@ from app.schemas.menu_item import MenuItemCreate, MenuItemUpdate, MenuItemOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import require_owner
 from app.schemas.response import ResponseWrapper, ImageUploadOut
+from app.core.common_responses import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE
 
 router = APIRouter(tags=["Menu"])
 
@@ -23,7 +24,12 @@ def get_owned_restaurant(restaurant_id: int, db: Session, current_user: User) ->
     return restaurant
 
 
-@router.post("/restaurants/{restaurant_id}/menu", response_model=ResponseWrapper[MenuItemOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/restaurants/{restaurant_id}/menu",
+    response_model=ResponseWrapper[MenuItemOut],
+    status_code=status.HTTP_201_CREATED,
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def create_menu_item(
     restaurant_id: int,
     item_in: MenuItemCreate,
@@ -48,7 +54,11 @@ def create_menu_item(
     return ResponseWrapper(success=True, message="Menu item created successfully", data=new_item)
 
 
-@router.get("/restaurants/{restaurant_id}/menu", response_model=ResponseWrapper[List[MenuItemOut]])
+@router.get(
+    "/restaurants/{restaurant_id}/menu",
+    response_model=ResponseWrapper[List[MenuItemOut]],
+    responses=NOT_FOUND_RESPONSE,
+)
 def list_menu_items(restaurant_id: int, db: Session = Depends(get_db)):
     restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
     if not restaurant:
@@ -58,7 +68,11 @@ def list_menu_items(restaurant_id: int, db: Session = Depends(get_db)):
     return ResponseWrapper(success=True, message="success", data=items)
 
 
-@router.patch("/menu/{item_id}", response_model=ResponseWrapper[MenuItemOut])
+@router.patch(
+    "/menu/{item_id}",
+    response_model=ResponseWrapper[MenuItemOut],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def update_menu_item(
     item_id: int,
     item_in: MenuItemUpdate,
@@ -80,7 +94,11 @@ def update_menu_item(
     return ResponseWrapper(success=True, message="Menu item updated successfully", data=item)
 
 
-@router.delete("/menu/{item_id}", response_model=ResponseWrapper[None])
+@router.delete(
+    "/menu/{item_id}",
+    response_model=ResponseWrapper[None],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def delete_menu_item(
     item_id: int,
     db: Session = Depends(get_db),

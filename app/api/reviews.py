@@ -10,11 +10,17 @@ from app.models.review import Review
 from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import get_current_user
+from app.core.common_responses import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE
 
 router = APIRouter(tags=["Reviews"])
 
 
-@router.post("/restaurants/{restaurant_id}/reviews", response_model=ResponseWrapper[ReviewOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/restaurants/{restaurant_id}/reviews",
+    response_model=ResponseWrapper[ReviewOut],
+    status_code=status.HTTP_201_CREATED,
+    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def create_review(
     restaurant_id: int,
     review_in: ReviewCreate,
@@ -42,7 +48,11 @@ def create_review(
     return ResponseWrapper(success=True, message="Review submitted successfully", data=new_review)
 
 
-@router.get("/restaurants/{restaurant_id}/reviews", response_model=ResponseWrapper[List[ReviewOut]])
+@router.get(
+    "/restaurants/{restaurant_id}/reviews",
+    response_model=ResponseWrapper[List[ReviewOut]],
+    responses=NOT_FOUND_RESPONSE,
+)
 def list_reviews(restaurant_id: int, db: Session = Depends(get_db)):
     restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
     if not restaurant:
@@ -52,7 +62,11 @@ def list_reviews(restaurant_id: int, db: Session = Depends(get_db)):
     return ResponseWrapper(success=True, message="success", data=reviews)
 
 
-@router.patch("/reviews/{review_id}", response_model=ResponseWrapper[ReviewOut])
+@router.patch(
+    "/reviews/{review_id}",
+    response_model=ResponseWrapper[ReviewOut],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def update_review(
     review_id: int,
     review_in: ReviewUpdate,
@@ -74,7 +88,11 @@ def update_review(
     return ResponseWrapper(success=True, message="Review updated successfully", data=review)
 
 
-@router.delete("/reviews/{review_id}", response_model=ResponseWrapper[None])
+@router.delete(
+    "/reviews/{review_id}",
+    response_model=ResponseWrapper[None],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def delete_review(
     review_id: int,
     db: Session = Depends(get_db),

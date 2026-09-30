@@ -8,7 +8,7 @@ from app.models.restaurant import Restaurant
 from app.schemas.restaurant import RestaurantCreate, RestaurantUpdate, RestaurantOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import require_owner
-from app.schemas.response import ResponseWrapper, ImageUploadOut
+from app.core.common_responses import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
@@ -33,7 +33,12 @@ def list_restaurants(
     return ResponseWrapper(success=True, message="success", data=restaurants)
 
 
-@router.post("", response_model=ResponseWrapper[RestaurantOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ResponseWrapper[RestaurantOut],
+    status_code=status.HTTP_201_CREATED,
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE},
+)
 def create_restaurant(
     restaurant_in: RestaurantCreate,
     db: Session = Depends(get_db),
@@ -54,7 +59,7 @@ def create_restaurant(
     return ResponseWrapper(success=True, message="Restaurant created successfully", data=new_restaurant)
 
 
-@router.get("/{restaurant_id}", response_model=ResponseWrapper[RestaurantOut])
+@router.get("/{restaurant_id}", response_model=ResponseWrapper[RestaurantOut], responses=NOT_FOUND_RESPONSE)
 def get_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
     restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
     if not restaurant:
@@ -62,7 +67,11 @@ def get_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
     return ResponseWrapper(success=True, message="success", data=restaurant)
 
 
-@router.patch("/{restaurant_id}", response_model=ResponseWrapper[RestaurantOut])
+@router.patch(
+    "/{restaurant_id}",
+    response_model=ResponseWrapper[RestaurantOut],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def update_restaurant(
     restaurant_id: int,
     restaurant_in: RestaurantUpdate,
@@ -74,31 +83,3 @@ def update_restaurant(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     if restaurant.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
-
-    update_data = restaurant_in.model_dump(exclude_unset=True)
-    if "address" in update_data and update_data["address"] is not None:
-        update_data["address"] = restaurant_in.address.model_dump()
-    for field, value in update_data.items():
-        setattr(restaurant, field, value)
-
-    db.commit()
-    db.refresh(restaurant)
-    return ResponseWrapper(success=True, message="Restaurant updated successfully", data=restaurant)
-
-
-@router.delete("/{restaurant_id}", response_model=ResponseWrapper[None])
-def delete_restaurant(
-    restaurant_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_owner),
-):
-    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
-    if not restaurant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    if restaurant.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
-
-    db.delete(restaurant)
-    db.commit()
-    return ResponseWrapper(success=True, message="Restaurant deleted successfully", data=None)
-

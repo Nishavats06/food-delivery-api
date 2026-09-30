@@ -3,6 +3,7 @@ from app.core.cloudinary_config import upload_image
 from app.schemas.response import ResponseWrapper, ImageUploadOut
 from app.api.deps import get_current_user
 from app.models.user import User
+from app.core.common_responses import UNAUTHORIZED_RESPONSE
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
@@ -10,7 +11,11 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 
 
-@router.post("/file", response_model=ResponseWrapper[ImageUploadOut])
+@router.post(
+    "/file",
+    response_model=ResponseWrapper[ImageUploadOut],
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def upload_file_endpoint(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),

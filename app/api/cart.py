@@ -8,6 +8,7 @@ from app.models.menu_item import MenuItem
 from app.schemas.cart import CartItemAdd, CartItemUpdate, CartOut, CartItemOut
 from app.schemas.response import ResponseWrapper
 from app.api.deps import get_current_user
+from app.core.common_responses import UNAUTHORIZED_RESPONSE, NOT_FOUND_RESPONSE
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
 
@@ -55,13 +56,18 @@ def build_cart_response(cart: Cart) -> CartOut:
     )
 
 
-@router.get("", response_model=ResponseWrapper[CartOut])
+@router.get("", response_model=ResponseWrapper[CartOut], responses=UNAUTHORIZED_RESPONSE)
 def get_cart(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     cart = get_or_create_cart(db, current_user)
     return ResponseWrapper(success=True, message="success", data=build_cart_response(cart))
 
 
-@router.post("/items", response_model=ResponseWrapper[CartOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/items",
+    response_model=ResponseWrapper[CartOut],
+    status_code=status.HTTP_201_CREATED,
+    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def add_item_to_cart(
     item_in: CartItemAdd,
     db: Session = Depends(get_db),
@@ -95,7 +101,11 @@ def add_item_to_cart(
     return ResponseWrapper(success=True, message="Item added to cart", data=build_cart_response(cart))
 
 
-@router.patch("/items/{item_id}", response_model=ResponseWrapper[CartOut])
+@router.patch(
+    "/items/{item_id}",
+    response_model=ResponseWrapper[CartOut],
+    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def update_cart_item(
     item_id: int,
     item_in: CartItemUpdate,
@@ -113,7 +123,11 @@ def update_cart_item(
     return ResponseWrapper(success=True, message="Cart item updated", data=build_cart_response(cart))
 
 
-@router.delete("/items/{item_id}", response_model=ResponseWrapper[CartOut])
+@router.delete(
+    "/items/{item_id}",
+    response_model=ResponseWrapper[CartOut],
+    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def remove_cart_item(
     item_id: int,
     db: Session = Depends(get_db),
@@ -130,7 +144,7 @@ def remove_cart_item(
     return ResponseWrapper(success=True, message="Item removed from cart", data=build_cart_response(cart))
 
 
-@router.delete("", response_model=ResponseWrapper[None])
+@router.delete("", response_model=ResponseWrapper[None], responses=UNAUTHORIZED_RESPONSE)
 def clear_cart(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     cart = get_or_create_cart(db, current_user)
     for item in cart.items:

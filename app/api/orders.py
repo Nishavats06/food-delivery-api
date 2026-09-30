@@ -13,6 +13,7 @@ from app.models.restaurant import Restaurant
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
 from app.schemas.response import ResponseWrapper
 from app.api.deps import get_current_user
+from app.core.common_responses import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -20,7 +21,12 @@ DELIVERY_FEE = 40.0
 TAX_RATE = 0.05
 
 
-@router.post("", response_model=ResponseWrapper[OrderOut], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ResponseWrapper[OrderOut],
+    status_code=status.HTTP_201_CREATED,
+    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def create_order(
     order_in: OrderCreate,
     db: Session = Depends(get_db),
@@ -80,7 +86,7 @@ def create_order(
     return ResponseWrapper(success=True, message="Order placed successfully", data=new_order)
 
 
-@router.get("", response_model=ResponseWrapper[List[OrderOut]])
+@router.get("", response_model=ResponseWrapper[List[OrderOut]], responses=UNAUTHORIZED_RESPONSE)
 def list_orders(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.RESTAURANT_OWNER:
         restaurant_ids = [r.id for r in db.query(Restaurant).filter(Restaurant.owner_id == current_user.id).all()]
@@ -90,7 +96,11 @@ def list_orders(db: Session = Depends(get_db), current_user: User = Depends(get_
     return ResponseWrapper(success=True, message="success", data=orders)
 
 
-@router.get("/{order_id}", response_model=ResponseWrapper[OrderOut])
+@router.get(
+    "/{order_id}",
+    response_model=ResponseWrapper[OrderOut],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def get_order(order_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
@@ -107,7 +117,11 @@ def get_order(order_id: int, db: Session = Depends(get_db), current_user: User =
     return ResponseWrapper(success=True, message="success", data=order)
 
 
-@router.patch("/{order_id}/status", response_model=ResponseWrapper[OrderOut])
+@router.patch(
+    "/{order_id}/status",
+    response_model=ResponseWrapper[OrderOut],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
 def update_order_status(
     order_id: int,
     status_in: OrderStatusUpdate,
