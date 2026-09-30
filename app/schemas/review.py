@@ -1,17 +1,10 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
 class ReviewCreate(BaseModel):
-    rating: int
+    rating: int = Field(..., ge=1, le=5)
     comment: Optional[str] = None
-
-    @field_validator("rating")
-    @classmethod
-    def rating_range(cls, value: int) -> int:
-        if value < 1 or value > 5:
-            raise ValueError("Rating must be between 1 and 5")
-        return value
 
     class Config:
         json_schema_extra = {
@@ -22,15 +15,8 @@ class ReviewCreate(BaseModel):
         }
 
 class ReviewUpdate(BaseModel):
-    rating: Optional[int] = None
+    rating: Optional[int] = Field(None, ge=1, le=5)
     comment: Optional[str] = None
-
-    @field_validator("rating")
-    @classmethod
-    def rating_range(cls, value: Optional[int]) -> Optional[int]:
-        if value is not None and (value < 1 or value > 5):
-            raise ValueError("Rating must be between 1 and 5")
-        return value
 
     class Config:
         json_schema_extra = {

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from app.models.user import UserRole
 
@@ -7,15 +7,8 @@ class UserCreate(BaseModel):
     last_name: str
     email: EmailStr
     phone_number: Optional[str] = None
-    password: str
+    password: str = Field(..., min_length=6)
     role: UserRole = UserRole.CUSTOMER
-
-    @field_validator("password")
-    @classmethod
-    def password_strength(cls, value: str) -> str:
-        if len(value) < 6:
-            raise ValueError("Password must be at least 6 characters long")
-        return value
 
     @field_validator("phone_number")
     @classmethod
