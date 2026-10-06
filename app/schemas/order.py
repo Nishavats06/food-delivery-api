@@ -21,7 +21,8 @@ class OrderItemOut(BaseModel):
     name: str
     price: float
     quantity: int
-
+    portion_name: Optional[str] = None
+    
     class Config:
         from_attributes = True
         json_schema_extra = {

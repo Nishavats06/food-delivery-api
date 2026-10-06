@@ -25,20 +25,28 @@ def get_or_create_cart(db: Session, user: User) -> Cart:
         db.refresh(cart)
     return cart
 
+def get_item_price(menu_item, portion_name: str = None) -> float:
+    if portion_name and menu_item.portions:
+        for portion in menu_item.portions:
+            if portion["name"] == portion_name:
+                return portion["price"]
+    return menu_item.price
 
 def build_cart_response(cart: Cart) -> CartOut:
     items_out = []
     subtotal = 0.0
 
     for item in cart.items:
-        item_total = item.menu_item.price * item.quantity
+        price = get_item_price(item.menu_item, item.portion_name)
+        item_total = price * item.quantity
         subtotal += item_total
         items_out.append(CartItemOut(
             id=item.id,
             menu_item_id=item.menu_item_id,
             name=item.menu_item.name,
-            price=item.menu_item.price,
+            price=price,
             quantity=item.quantity,
+            portion_name=item.portion_name,
             item_total=item_total,
         ))
 
@@ -55,19 +63,13 @@ def build_cart_response(cart: Cart) -> CartOut:
         total=total,
     )
 
-
 @router.get("", response_model=ResponseWrapper[CartOut], responses=UNAUTHORIZED_RESPONSE)
 def get_cart(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     cart = get_or_create_cart(db, current_user)
     return ResponseWrapper(success=True, message="success", data=build_cart_response(cart))
 
 
-@router.post(
-    "/items",
-    response_model=ResponseWrapper[CartOut],
-    status_code=status.HTTP_201_CREATED,
-    responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE},
-)
+@router.post("/items", response_model=ResponseWrapper[CartOut], status_code=status.HTTP_201_CREATED, responses={**UNAUTHORIZED_RESPONSE, **NOT_FOUND_RESPONSE})
 def add_item_to_cart(
     item_in: CartItemAdd,
     db: Session = Depends(get_db),
@@ -79,11 +81,17 @@ def add_item_to_cart(
     if not menu_item.is_available:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Menu item is not available")
 
+    if item_in.portion_name and menu_item.portions:
+        valid_portions = [p["name"] for p in menu_item.portions]
+        if item_in.portion_name not in valid_portions:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid portion. Valid options: {valid_portions}")
+
     cart = get_or_create_cart(db, current_user)
 
     existing_item = db.query(CartItem).filter(
         CartItem.cart_id == cart.id,
         CartItem.menu_item_id == item_in.menu_item_id,
+        CartItem.portion_name == item_in.portion_name,
     ).first()
 
     if existing_item:
@@ -93,6 +101,7 @@ def add_item_to_cart(
             cart_id=cart.id,
             menu_item_id=item_in.menu_item_id,
             quantity=item_in.quantity,
+            portion_name=item_in.portion_name,
         )
         db.add(new_item)
 

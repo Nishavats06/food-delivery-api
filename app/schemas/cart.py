@@ -1,34 +1,22 @@
-from pydantic import BaseModel, field_validator
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Optional
 
 class CartItemAdd(BaseModel):
     menu_item_id: int
-    quantity: int = 1
-
-    @field_validator("quantity")
-    @classmethod
-    def quantity_must_be_positive(cls, value: int) -> int:
-        if value < 1:
-            raise ValueError("Quantity must be at least 1")
-        return value
+    quantity: int = Field(1, ge=1)
+    portion_name: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "menu_item_id": 1,
-                "quantity": 2
+                "quantity": 2,
+                "portion_name": "Full"
             }
         }
 
 class CartItemUpdate(BaseModel):
-    quantity: int
-
-    @field_validator("quantity")
-    @classmethod
-    def quantity_must_be_positive(cls, value: int) -> int:
-        if value < 1:
-            raise ValueError("Quantity must be at least 1")
-        return value
+    quantity: int = Field(..., ge=1)
 
     class Config:
         json_schema_extra = {
@@ -43,6 +31,7 @@ class CartItemOut(BaseModel):
     name: str
     price: float
     quantity: int
+    portion_name: Optional[str] = None
     item_total: float
 
     class Config:
@@ -53,6 +42,7 @@ class CartItemOut(BaseModel):
                 "name": "Butter Chicken",
                 "price": 320.0,
                 "quantity": 2,
+                "portion_name": "Full",
                 "item_total": 640.0
             }
         }
@@ -76,6 +66,7 @@ class CartOut(BaseModel):
                         "name": "Butter Chicken",
                         "price": 320.0,
                         "quantity": 2,
+                        "portion_name": "Full",
                         "item_total": 640.0
                     }
                 ],

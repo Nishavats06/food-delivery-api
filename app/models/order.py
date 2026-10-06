@@ -42,5 +42,6 @@ class OrderItem(Base):
     name = Column(String, nullable=False)
     price = Column(Float, nullable=False)
     quantity = Column(Integer, nullable=False)
-
+    portion_name = Column(String, nullable=True)
+    
     order = relationship("Order", back_populates="items")

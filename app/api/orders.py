@@ -14,6 +14,7 @@ from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
 from app.schemas.response import ResponseWrapper
 from app.api.deps import get_current_user
 from app.core.common_responses import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE
+from app.api.cart import get_item_price
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -50,7 +51,7 @@ def create_order(
                 detail="Cart contains items from multiple restaurants",
             )
 
-    subtotal = sum(item.menu_item.price * item.quantity for item in cart.items)
+    subtotal = sum(get_item_price(item.menu_item, item.portion_name) * item.quantity for item in cart.items)
     taxes = round(subtotal * TAX_RATE, 2)
     total = round(subtotal + DELIVERY_FEE + taxes, 2)
 
@@ -73,7 +74,8 @@ def create_order(
             order_id=new_order.id,
             menu_item_id=item.menu_item_id,
             name=item.menu_item.name,
-            price=item.menu_item.price,
+            price=get_item_price(item.menu_item, item.portion_name),
+            portion_name=item.portion_name,
             quantity=item.quantity,
         )
         db.add(order_item)
