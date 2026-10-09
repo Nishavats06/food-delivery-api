@@ -88,6 +88,14 @@ def add_item_to_cart(
 
     cart = get_or_create_cart(db, current_user)
 
+    if cart.items:
+        existing_restaurant_id = cart.items[0].menu_item.restaurant_id
+        if menu_item.restaurant_id != existing_restaurant_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Your cart contains items from another restaurant. Clear your cart first to order from this restaurant.",
+            )
+
     existing_item = db.query(CartItem).filter(
         CartItem.cart_id == cart.id,
         CartItem.menu_item_id == item_in.menu_item_id,

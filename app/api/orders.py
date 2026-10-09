@@ -16,6 +16,15 @@ from app.api.deps import get_current_user
 from app.core.common_responses import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE
 from app.api.cart import get_item_price
 
+VALID_STATUS_TRANSITIONS = {
+    OrderStatus.PLACED: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+    OrderStatus.CONFIRMED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+    OrderStatus.PREPARING: [OrderStatus.OUT_FOR_DELIVERY],
+    OrderStatus.OUT_FOR_DELIVERY: [OrderStatus.DELIVERED],
+    OrderStatus.DELIVERED: [],
+    OrderStatus.CANCELLED: [],
+}
+
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 DELIVERY_FEE = 40.0
@@ -155,13 +164,17 @@ def update_order_status(
     if current_user.role != UserRole.RESTAURANT_OWNER or order.restaurant.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this order")
 
+    allowed_next = VALID_STATUS_TRANSITIONS.get(order.status, [])
+    if status_in.status not in allowed_next:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot change status from {order.status.value} to {status_in.status.value}. Allowed: {[s.value for s in allowed_next]}",
+        )
+
     order.status = status_in.status
     db.commit()
     db.refresh(order)
     return ResponseWrapper(success=True, message="Order status updated", data=order)
-
-
-
 
 # from fastapi import APIRouter, Depends, HTTPException, status
 # from sqlalchemy.orm import Session
