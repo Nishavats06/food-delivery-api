@@ -97,6 +97,24 @@ def list_orders(db: Session = Depends(get_db), current_user: User = Depends(get_
         orders = db.query(Order).filter(Order.user_id == current_user.id).all()
     return ResponseWrapper(success=True, message="success", data=orders)
 
+@router.get(
+    "/restaurant/{restaurant_id}",
+    response_model=ResponseWrapper[List[OrderOut]],
+    responses={**UNAUTHORIZED_RESPONSE, **FORBIDDEN_RESPONSE, **NOT_FOUND_RESPONSE},
+)
+def list_restaurant_orders(
+    restaurant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    if current_user.role != UserRole.RESTAURANT_OWNER or restaurant.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your restaurant")
+
+    orders = db.query(Order).filter(Order.restaurant_id == restaurant_id).all()
+    return ResponseWrapper(success=True, message="success", data=orders)
 
 @router.get(
     "/{order_id}",
