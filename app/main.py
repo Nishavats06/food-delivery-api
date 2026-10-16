@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.openapi.utils import get_openapi
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.restaurants import router as restaurants_router
@@ -16,6 +17,14 @@ from app.api.upload import router as upload_router
 from app.api.users import router as users_router
 
 app = FastAPI(title="Food Delivery API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(auth_router)
 app.include_router(restaurants_router)
 app.include_router(location_router)

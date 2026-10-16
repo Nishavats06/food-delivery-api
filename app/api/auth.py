@@ -45,25 +45,6 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     return ResponseWrapper(success=True, message="Login successful", data=token)
 
 
-@router.get("/me", response_model=ResponseWrapper[UserOut])
-def read_current_user(current_user: User = Depends(get_current_user)):
-    return ResponseWrapper(success=True, message="success", data=current_user)
-
-
-@router.patch("/me", response_model=ResponseWrapper[UserOut])
-def update_current_user(
-    user_in: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    update_data = user_in.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(current_user, field, value)
-    db.commit()
-    db.refresh(current_user)
-    return ResponseWrapper(success=True, message="Profile updated successfully", data=current_user)
-
-
 @router.post("/google-login", response_model=ResponseWrapper[Token])
 def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
     google_data = verify_google_token(payload.id_token)
